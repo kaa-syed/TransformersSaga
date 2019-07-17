@@ -1,0 +1,283 @@
+openapi: 3.0.0
+# Added by API Auto Mocking Plugin
+servers:
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/sy_kamran/Transformers/1.0.0
+info:
+  description: This API is for Transformers Saga
+  version: "1.0.1"
+  title: Transformers API
+  contact:
+    email: sy_kamran@yahoo.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+tags:
+  - name: battle
+    description: Executing battle between transformers
+  - name: list
+    description: Transformers List Operations. List by team name or List all in the system
+  - name: transformer
+    description: Operations on transformer definitions.  
+paths:
+  /transformers/battle:
+    get:
+      tags: 
+        - battle
+      summary: Initiating battle between the trasformers in the input list and returning the result
+      operationId: initiateBattle 
+      description: Initiate battle between given list of transformers by name and by IDs. The default is the battle between all transformers defined in the system.
+      parameters: 
+        - in: query
+          name: names
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+        - in: query
+          name: ids
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+            format: uuid
+      responses:
+        '200':
+          $ref: '#/components/responses/BattleResult'
+        '400':
+          $ref: '#/components/responses/BadInputParameters'
+            
+  /transformers/list/all:
+    get:
+      tags: 
+        - list
+      summary: List of all transformers
+      description:  List of all transformers defined in the system
+      operationId: listAllTransformers
+      responses:
+        '200':
+          $ref: '#/components/responses/SearchResult'
+        '204':
+          description: Empty transformer list
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /transformers/list/{team}:
+    get:
+      tags: 
+        - list
+      summary: List of team members 
+      description: Pass an optional team name for looking up tranformers in the specified team. 
+      operationId: listTransformers
+      parameters:
+        - in: path
+          name: team
+          description: transformers team name
+          required: true
+          schema:
+              type: string
+              description: valid team are (ignore case) 'A', 'D',"Autobots", "Decepticons".  
+              
+              
+      responses:
+        '200':
+          $ref: '#/components/responses/SearchResult'
+        '204':
+          description: Empty transformer list
+        '400':
+          $ref: '#/components/responses/BadRequest'
+          
+  /transformers/transformer:
+    post:
+      tags: 
+        - transformer
+      summary: create transformer
+      operationId: createTransformer 
+      description: Adds a new transformer to the system
+      responses:
+        '201':
+          description: transformer created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: an existing transformer already exists
+      requestBody:
+        $ref: '#/components/requestBodies/SingleTransformer'
+    patch:
+      tags: 
+        - transformer
+      summary: updating an existing transformer defination
+      operationId: updateTransformer
+      responses:
+        '200':
+          description: transformers updated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/ConflictResponse'
+      requestBody:
+        $ref: '#/components/requestBodies/SingleTransformer'
+    
+  /transformers/transformer/{name}:
+    delete:
+      tags: 
+        - transformer
+      summary: removing the transformer by name
+      operationId: deleteTransformerByName
+      description: deleting a transformer via it's name.
+      parameters: 
+        - in: path
+          name: name
+          description: transformer's unique name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Existing transformer is deleted
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Transformer'
+        '204':
+          description: Non existing transformer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+  responses:
+    BadInputParameters:
+      description: 'Bad request! invalid input, object invalid'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ArrayString'
+    BadRequest:
+      description: 'Bad request! invalid input, object invalid'
+    ConflictResponse:
+      description: conflict with an existing transformer
+      content:
+        application/json:
+          schema: 
+            $ref: '#/components/schemas/Transformer'
+    BattleResult:
+      description: result of the battles
+      content:
+        application/json:
+          schema: 
+            $ref: '#/components/schemas/Result'
+    SearchResult:
+      description: result of the transformer search
+      content:
+        application/json:
+          schema: 
+            $ref: '#/components/schemas/Transformers'
+            
+  requestBodies:
+    SingleTransformer:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Transformer'
+    ListOfTransformers:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Transformers'
+  
+  schemas:
+    ArrayString:
+      type: array
+      items:
+        type: string
+    Result:
+      type: object
+      required:
+        - battle
+        - winner
+        - survivors
+      properties:
+        battle:
+          type: integer
+          minimum: 0
+        winner:
+          $ref: '#/components/schemas/Team'
+        survivors:
+          $ref: '#/components/schemas/Team'
+    Team:
+      type: object
+      description: members of the same team
+      required:
+        - name
+        - members
+      properties:
+        name:
+          $ref: '#/components/schemas/TeamName' 
+        members:
+          $ref: '#/components/schemas/Transformers'
+        
+    Transformers:
+      type: array
+      items:
+        $ref: '#/components/schemas/Transformer'
+    Transformer:
+      type: object
+      required:
+        - name
+        - team
+        - specs
+      properties:
+        id:
+          type: string
+          example: d290f1ee
+        name:
+          type: string
+          example: Soundwave
+          uniqueItems: true
+        team:
+          $ref: '#/components/schemas/TeamName'
+        specs:
+          type: object
+          properties:
+            default:
+              $ref: '#/components/schemas/SpecName'
+          required:
+          - default
+          additionalProperties:
+            $ref: '#/components/schemas/SpecValue'
+          example: 
+            {
+              'Strength':8,
+              'Intelligence':7,
+              'Speed':4,
+              'Endurance':8,
+              'Rank':1,
+              'Courage':10,
+              'Firepower':3,
+              'Skill':8
+            }
+        creationDate:
+          type: string
+          format: date-time
+          example: '2016-08-29T09:12:33.001Z'
+    TeamName:
+      type: string
+      enum:
+        - Autobot
+        - Decepticon
+    SpecName:
+      type: string
+      enum:
+        - Strength
+        - Intelligence
+        - Speed
+        - Endurance
+        - Rank
+        - Courage
+        - Firepower
+        - Skill
+    SpecValue:
+      type: integer
+      minimum: 1
+      maximum: 10
